@@ -1,0 +1,46 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Output
+bin/
+dist/
+build/
+
+# Go
+vendor/
+coverage.out
+*.out
+
+# Environment
+.env
+.env.*
+*.local
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# JetBrains
+*.iml
+
+# Temporary
+tmp/
+temp/
+
+# GoLand
+.idea_modules/
+
+# Generated files
+*.generated.go

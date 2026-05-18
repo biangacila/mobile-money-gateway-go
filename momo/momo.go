@@ -17,6 +17,7 @@ type Client interface {
 	CreateAPIKey(apiUserID string) (string, error)
 	GenerateCollectionToken() (string, error)
 	RequestToPay(token string, payload RequestToPayPayload) (string, error)
+	GetRequestToPayStatus(token, referenceID string) ([]byte, error)
 }
 
 type ClientImpl struct {
@@ -52,7 +53,7 @@ func (m *ClientImpl) CreateAPIUser(callbackHost string) (string, error) {
 
 	req, err := http.NewRequest(
 		"POST",
-		baseURL+"/v1_0/apiuser",
+		m.baseURL+"/v1_0/apiuser",
 		bytes.NewBuffer(body),
 	)
 	if err != nil {
@@ -82,7 +83,7 @@ func (m *ClientImpl) CreateAPIUser(callbackHost string) (string, error) {
 func (m *ClientImpl) CreateAPIKey(apiUserID string) (string, error) {
 	req, err := http.NewRequest(
 		"POST",
-		baseURL+"/v1_0/apiuser/"+apiUserID+"/apikey",
+		m.baseURL+"/v1_0/apiuser/"+apiUserID+"/apikey",
 		nil,
 	)
 	if err != nil {
@@ -121,7 +122,7 @@ func (m *ClientImpl) GenerateCollectionToken() (string, error) {
 
 	req, err := http.NewRequest(
 		"POST",
-		baseURL+"/collection/token/",
+		m.baseURL+"/collection/token/",
 		nil,
 	)
 	if err != nil {
@@ -163,7 +164,7 @@ func (m *ClientImpl) RequestToPay(token string, payload RequestToPayPayload) (st
 
 	req, err := http.NewRequest(
 		"POST",
-		baseURL+"/collection/v1_0/requesttopay",
+		m.baseURL+"/collection/v1_0/requesttopay",
 		bytes.NewBuffer(body),
 	)
 	if err != nil {
@@ -172,7 +173,7 @@ func (m *ClientImpl) RequestToPay(token string, payload RequestToPayPayload) (st
 
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("X-Reference-Id", referenceID)
-	req.Header.Set("X-Target-Environment", targetEnvironment)
+	req.Header.Set("X-Target-Environment", m.targetEnvironment)
 	req.Header.Set("Ocp-Apim-Subscription-Key", m.SubscriptionKey)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -195,7 +196,7 @@ func (m *ClientImpl) RequestToPay(token string, payload RequestToPayPayload) (st
 func (m *ClientImpl) GetRequestToPayStatus(token, referenceID string) ([]byte, error) {
 	req, err := http.NewRequest(
 		"GET",
-		baseURL+"/collection/v1_0/requesttopay/"+referenceID,
+		m.baseURL+"/collection/v1_0/requesttopay/"+referenceID,
 		nil,
 	)
 	if err != nil {
@@ -203,7 +204,7 @@ func (m *ClientImpl) GetRequestToPayStatus(token, referenceID string) ([]byte, e
 	}
 
 	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("X-Target-Environment", targetEnvironment)
+	req.Header.Set("X-Target-Environment", m.targetEnvironment)
 	req.Header.Set("Ocp-Apim-Subscription-Key", m.SubscriptionKey)
 
 	resp, err := m.HttpClient.Do(req)
@@ -219,4 +220,30 @@ func (m *ClientImpl) GetRequestToPayStatus(token, referenceID string) ([]byte, e
 	}
 
 	return respBody, nil
+}
+
+func (m *ClientImpl) GetAPIUser(apiUserID string) (string, error) {
+	req, err := http.NewRequest(
+		"GET",
+		m.baseURL+"/v1_0/apiuser/"+apiUserID,
+		nil,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Ocp-Apim-Subscription-Key", m.SubscriptionKey)
+
+	resp, err := m.HttpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("get api user failed: status=%d body=%s", resp.StatusCode, string(respBody))
+	}
+
+	return string(respBody), nil
 }
